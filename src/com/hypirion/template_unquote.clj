@@ -53,9 +53,9 @@
     (when (== delimiter (int -1))
       (throw (EOFException. (str "Stream ends with " *unquote-char* *inline-char*))))
     (when-not end-delimiter
-      (throw (Exception. (str *unquote-char* *inline-char*
-                              " only supports [ and ( as delimiters, not "
-                              (char delimiter)))))
+      (throw (RuntimeException. (str *unquote-char* *inline-char*
+                                     " only supports [ and ( as delimiters, not "
+                                     (char delimiter)))))
     (let [first-value (read rdr)
           inline-data (parse-forms-until rdr end-delimiter)]
       [:inline-form ((inline-delimiter-type delimiter) first-value inline-data)])))
@@ -98,9 +98,9 @@
         (when (identical? form ::eof)
           ;; TODO: Well eh, this is a complect error message: Should change this
           ;; if this is used by other forms than inline-form.
-          (throw (Exception. (str "Inside " *unquote-char* *inline-char*
-                                  " form: Expected " (char stop-val) " at some point,"
-                                  " but EOF was found before that"))))
+          (throw (RuntimeException. (str "Inside " *unquote-char* *inline-char*
+                                         " form: Expected " (char stop-val) " at some point,"
+                                         " but EOF was found before that"))))
         (recur (conj forms form)))
       forms)))
 

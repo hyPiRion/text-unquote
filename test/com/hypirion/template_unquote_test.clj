@@ -3,10 +3,12 @@
             [com.hypirion.template-unquote :refer :all])
   (:import (java.io StringReader)))
 
+(defn parse-string [s]
+  (parsed-seq (StringReader. s)))
+
 (deftest parse-tests
   (testing "basic parse tests"
-    (are [s forms] (= (parsed-seq (StringReader. s))
-                      (quote forms))
+    (are [s forms] (= (parse-string s) (quote forms))
       "foo bar" ([:string "foo bar"])
       "~~quoting~~" ([:string "~quoting~"])
       "~(foo bar)" ([:form (foo bar)])
@@ -28,8 +30,7 @@
     (binding [*unquote-char* \$
               *splice-char* \^
               *inline-char* \>]
-      (are [s forms] (= (parsed-seq (StringReader. s))
-                        (quote forms))
+      (are [s forms] (= (parse-string s) (quote forms))
         "foo bar" ([:string "foo bar"])
         "tilde: ~" ([:string "tilde: ~"])
         "$(foo bar)" ([:form (foo bar)])
@@ -37,4 +38,18 @@
         "$>(foo~bar~)" ([:inline-form (foo [[:string "~bar~"]])])
         "$>(a $>[:b $(c)])" ([:inline-form (a [[:string " "]
                                               [:inline-form [:b [[:string " "]
-                                                                 [:form (c)]]]]])])))))
+                                                                 [:form (c)]]]]])]))))
+  (testing "errors"
+    (is (thrown-with-msg? java.io.EOFException #"Stream ends with ~#"
+                          (dorun (parse-string "~#"))))
+    (is (thrown-with-msg? RuntimeException #"Inside ~# form: Expected \) at some point"
+                          (dorun (parse-string "~#(foo bar baz banana"))))
+    (is (thrown-with-msg? RuntimeException #"~# only supports \[ and \( as delimiters"
+                          (dorun (parse-string "~#{}"))))
+    (is (thrown-with-msg? RuntimeException #"Unmatched delimiter: \]"
+                          (dorun (parse-string "~(]"))))
+    (is (thrown-with-msg? RuntimeException #"Unmatched delimiter: \]"
+                          (dorun (parse-string "~@(]"))))
+    (is (thrown-with-msg? RuntimeException #"EOF while reading"
+                          (dorun (parse-string "~"))))))
+
