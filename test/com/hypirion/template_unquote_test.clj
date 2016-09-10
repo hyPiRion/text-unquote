@@ -25,9 +25,9 @@
       ;; Uh, it's legal because we do clojure.core/read so yeah
       "~ #=(clojure.lang.PersistentArrayMap/create {})" ([:form {}])))
   (testing "other symbols for evaluating"
-    (binding [*unquote-char* (int \$)
-              *splice-char* (int \^)
-              *inline-char* (int \>)]
+    (binding [*unquote-char* \$
+              *splice-char* \^
+              *inline-char* \>]
       (are [s forms] (= (parsed-seq (StringReader. s))
                         (quote forms))
         "foo bar" ([:string "foo bar"])

@@ -2,9 +2,9 @@
   (:refer-clojure :exclude [peek])
   (:import (java.io PushbackReader Reader EOFException)))
 
-(def ^:dynamic *unquote-char* (int \~))
-(def ^:dynamic *splice-char* (int \@))
-(def ^:dynamic *inline-char* (int \#))
+(def ^:dynamic *unquote-char* \~)
+(def ^:dynamic *splice-char* \@)
+(def ^:dynamic *inline-char* \#)
 
 (defn ^:private string-buffer
   "Returns a StringBuffer which contains the single character c."
@@ -21,17 +21,17 @@
           ;; If next is *unquote-char*, then gobble a single unquote char,
           ;; otherwise pushback both and finish.
           ;; TODO: Support ~), ~}, ~] as quoted values
-          (== c *unquote-char*) (let [c* (.read rdr)]
-                               (cond (== c* *unquote-char*)
-                                     ,,(do (.append sb (char c))
-                                           (recur rdr stop-val sb))
-                                     (== c* (int -1)) ;; funny edge cases
-                                     ,,(do (.unread rdr c)
-                                           [:string (.toString sb)])
-                                     :otherwise
-                                     ,,(do (.unread rdr c*)
-                                           (.unread rdr c)
-                                           [:string (.toString sb)])))
+          (== c (int *unquote-char*)) (let [c* (.read rdr)]
+                                       (cond (== c* (int *unquote-char*))
+                                             ,,(do (.append sb (char c))
+                                                   (recur rdr stop-val sb))
+                                             (== c* (int -1)) ;; funny edge cases
+                                             ,,(do (.unread rdr c)
+                                                   [:string (.toString sb)])
+                                             :otherwise
+                                             ,,(do (.unread rdr c*)
+                                                   (.unread rdr c)
+                                                   [:string (.toString sb)])))
           :otherwise (do (.append sb (char c))
                          (recur rdr stop-val sb)))))
 
@@ -53,7 +53,7 @@
     (when (== delimiter (int -1))
       (throw (EOFException. (str "Stream ends with " *unquote-char* *inline-char*))))
     (when-not end-delimiter
-      (throw (Exception. (str (char *unquote-char*) (char *inline-char*)
+      (throw (Exception. (str *unquote-char* *inline-char*
                               " only supports [ and ( as delimiters, not "
                               (char delimiter)))))
     (let [first-value (read rdr)
@@ -66,18 +66,18 @@
   Returns ::eof if we hit end-of-file with the first character."
   [^PushbackReader rdr stop-val]
   (let [c (.read rdr)]
-    (cond (== c *unquote-char*)
+    (cond (== c (int *unquote-char*))
           ;; Cases:
           ;; We have double-tilde: ~~ which is simply "~". String
           ;; We have tilde-at: ~@, which is splice-form
           ;; We have ~ as first char and not ~, @ or # as second char, which
           ;;   means we pass stuff down to read.
           (let [c* (.read rdr)]
-            (cond (== c* *unquote-char*)
+            (cond (== c* (int *unquote-char*))
                   ,,(parse-string-until rdr stop-val (string-buffer (char c)))
-                  (== c* *splice-char*)
+                  (== c* (int *splice-char*))
                   ,,[:splice-form (read rdr)]
-                  (== c* *inline-char*)
+                  (== c* (int *inline-char*))
                   ,,(parse-inline-form rdr)
                   :otherwise
                   ,,(do (when-not (== c* (int -1))
@@ -98,7 +98,7 @@
         (when (identical? form ::eof)
           ;; TODO: Well eh, this is a complect error message: Should change this
           ;; if this is used by other forms than inline-form.
-          (throw (Exception. (str "Inside " (char *unquote-char*) (char *inline-char*)
+          (throw (Exception. (str "Inside " *unquote-char* *inline-char*
                                   " form: Expected " (char stop-val) " at some point,"
                                   " but EOF was found before that"))))
         (recur (conj forms form)))
