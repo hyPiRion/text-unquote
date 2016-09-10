@@ -1,6 +1,9 @@
 (ns com.hypirion.template-unquote
   (:refer-clojure :exclude [peek])
-  (:import (java.io PushbackReader Reader EOFException)))
+  (:require [clojail.core :as jail])
+  (:import (java.io Reader StringReader PushbackReader
+                    Writer StringWriter
+                    EOFException)))
 
 (def ^:dynamic *unquote-char* \~)
 (def ^:dynamic *splice-char* \@)
@@ -83,7 +86,6 @@
                   ,,(do (when-not (== c* (int -1))
                           (.unread rdr c*))
                         [:form (read rdr)])))
-          ;; Saw the desired value. TODO: Pushback or ignore?
           (== c stop-val) nil
           (== c (int -1)) ::eof
           :otherwise (parse-string-until rdr stop-val (string-buffer (char c))))))
@@ -122,12 +124,59 @@
 (defn parsed-seq
   "Returns a lazy sequence of unevaluated forms and strings from rdr as
   specified by the template specification. If you're not sure if you need a lazy
-  sequence or not, use parsed-seqv instead."
+  sequence or not, use parsed-vec instead."
   [^Reader rdr]
   (parsed-lnpr-seq (PushbackReader. rdr 2)))
 
-(defn parsed-seqv
+(defn parsed-vec
   "Like parsed-seq, but eager and returns a vector."
   [^Reader rdr]
   (vec (parsed-seq rdr)))
 
+(defn evaluate-form
+  "Lazily transforms an element into values by sequentially evaluating
+  forms with eval-fn. Nested forms are evaluated innermost first,
+  left-to-right."
+  [form eval-fn]
+  ;; TODO: Here's where I put the logic
+  []
+  )
+
+(defn evaluated-seq
+  "Lazily transforms every element of coll into values by sequentially
+  evaluating forms with eval-fn. Nested forms are evaluated innermost
+  first, left-to-right. If you're not sure if you need a lazy sequence
+  or not, use evaluated-vec instead."
+  [coll eval-fn]
+  (mapcat #(evaluate-form % eval-fn) coll))
+
+(defn evaluated-vec
+  "Like evaluated-seq, but eager and returns a vector."
+  [coll eval-fn]
+  (vec (evaluated-seq coll eval-fn)))
+
+(defn render
+  "Renders content from the reader onto the writer with eval-fn as the
+  evaluator."
+  [^Reader rdr ^Writer wrt eval-fn]
+  (doseq [data (-> rdr (parsed-seq) (evaluated-seq eval-fn))]
+    (.write wrt (str data))))
+
+(defn render-string
+  "Renders the input string with eval-fn and returns the result as a string."
+  [s eval-fn]
+  (let [wrt (StringWriter.)]
+    (render (StringReader. s) wrt eval-fn)
+    (str wrt)))
+
+;; TODO: Into its own namespace
+(defmacro with-sandbox
+  "Creates a temorary sandbox and cleans up as much of it as it can."
+  [[sandbox-name tester & sandbox-args]
+   & body]
+  `(let [sandbox-ns# (gensym "sandbox")
+         ~sandbox-name (jail/sandbox ~tester ~@sandbox-args :namespace sandbox-ns#)]
+     (try
+       ~@body
+       (finally
+         (remove-ns sandbox-ns#)))))
