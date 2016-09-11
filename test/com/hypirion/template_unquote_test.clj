@@ -15,10 +15,10 @@
       "~@(foo bar)" ([:splice-form (foo bar)])
       "~(baz)zap" ([:form (baz)] [:string "zap"])
       "foo ~(bar) baz" ([:string "foo "] [:form (bar)] [:string " baz"])
-      "~#(foo /[v.v]/) quux" ([:inline-form (foo [[:string " /[v.v]/"]])]
+      "~#(foo /[v.v]/) quux" ([:inline-form (foo [[:string "/[v.v]/"]])]
                              [:string " quux"])
       ;; nesting in inline forms
-      "~#(foo bar~(baz)zap)" ([:inline-form (foo [[:string " bar"]
+      "~#(foo bar~(baz)zap)" ([:inline-form (foo [[:string "bar"]
                                                  [:form (baz)]
                                                  [:string "zap"]])])
       "~#(foo~#[bar~#(baz)])" ([:inline-form (foo [[:inline-form
@@ -36,9 +36,7 @@
         "$(foo bar)" ([:form (foo bar)])
         "$^(foo bar)" ([:splice-form (foo bar)])
         "$>(foo~bar~)" ([:inline-form (foo [[:string "~bar~"]])])
-        "$>(a $>[:b $(c)])" ([:inline-form (a [[:string " "]
-                                              [:inline-form [:b [[:string " "]
-                                                                 [:form (c)]]]]])]))))
+        "$>(a $>[:b $(c)])" ([:inline-form (a [[:inline-form [:b [[:form (c)]]]]])]))))
   (testing "errors"
     (is (thrown-with-msg? java.io.EOFException #"Stream ends with ~#"
                           (dorun (parse-string "~#"))))

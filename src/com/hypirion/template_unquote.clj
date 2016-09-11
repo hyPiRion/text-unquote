@@ -59,6 +59,10 @@
                                      " only supports [ and ( as delimiters, not "
                                      (char delimiter)))))
     (let [first-value (read rdr)
+          ;; Remove a single space if present
+          _ (let [c (.read rdr)]
+              (if-not (= (char c) \space)
+                (.unread rdr c)))
           inline-data (parse-forms-until rdr end-delimiter)]
       [:inline-form ((inline-delimiter-type delimiter) first-value inline-data)])))
 
