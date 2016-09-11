@@ -10,13 +10,15 @@
   (testing "basic parse tests"
     (are [s forms] (= (parse-string s) (quote forms))
       "foo bar" ([:string "foo bar"])
-      "~~quoting~~" ([:string "~quoting~"])
+      "~~escaped~~" ([:string "~escaped~"])
+      "~] ~)" ([:string "] )"])
       "~(foo bar)" ([:form (foo bar)])
       "~@(foo bar)" ([:splice-form (foo bar)])
       "~(baz)zap" ([:form (baz)] [:string "zap"])
       "foo ~(bar) baz" ([:string "foo "] [:form (bar)] [:string " baz"])
       "~#(foo /[v.v]/) quux" ([:inline-form (foo [[:string "/[v.v]/"]])]
                              [:string " quux"])
+      "~#(foo~))" ([:inline-form (foo [[:string ")"]])])
       ;; nesting in inline forms
       "~#(foo bar~(baz)zap)" ([:inline-form (foo [[:string "bar"]
                                                  [:form (baz)]

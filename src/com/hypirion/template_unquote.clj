@@ -22,10 +22,11 @@
                              [:string (.toString sb)])
           ;; If next is *unquote-char*, then gobble a single unquote char,
           ;; otherwise pushback both and finish.
-          ;; TODO: Support ~), ~}, ~] as quoted values
           (== c (int *unquote-char*)) (let [c* (.read rdr)]
-                                       (cond (== c* (int *unquote-char*))
-                                             ,,(do (.append sb (char c))
+                                       (cond (or (== c* (int *unquote-char*))
+                                                 (== c* (int \]))
+                                                 (== c* (int \))))
+                                             ,,(do (.append sb (char c*))
                                                    (recur rdr stop-val sb))
                                              (== c* (int -1)) ;; funny edge cases
                                              ,,(do (.unread rdr c)
@@ -79,8 +80,10 @@
           ;; We have ~ as first char and not ~, @ or # as second char, which
           ;;   means we pass stuff down to read.
           (let [c* (.read rdr)]
-            (cond (== c* (int *unquote-char*))
-                  ,,(parse-string-until rdr stop-val (string-buffer (char c)))
+            (cond (or (== c* (int \]))
+                      (== c* (int \)))
+                      (== c* (int *unquote-char*)))
+                  ,,(parse-string-until rdr stop-val (string-buffer (char c*)))
                   (== c* (int *splice-char*))
                   ,,[:splice-form (read rdr)]
                   (== c* (int *inline-char*))
