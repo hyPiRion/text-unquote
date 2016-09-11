@@ -1,6 +1,6 @@
-(ns com.hypirion.template-unquote-test
+(ns com.hypirion.text-unquote-test
   (:require [clojure.test :refer :all]
-            [com.hypirion.template-unquote :refer :all])
+            [com.hypirion.text-unquote :refer :all])
   (:import (java.io StringReader)))
 
 (defn parse-string [s]

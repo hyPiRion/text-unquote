@@ -1,4 +1,4 @@
-(ns com.hypirion.template-unquote
+(ns com.hypirion.text-unquote
   (:require [clojure.core.match :refer [match]])
   (:import (java.io Reader StringReader PushbackReader
                     Writer StringWriter
@@ -128,9 +128,9 @@
              (parsed-lnpr-seq rdr))))))
 
 (defn parsed-seq
-  "Returns a lazy sequence of unevaluated forms and strings from rdr as
-  specified by the template specification. If you're not sure if you need a lazy
-  sequence or not, use parsed-vec instead."
+  "Returns a lazy sequence of unevaluated forms and strings from rdr
+  as specified by the text-unquote specification. If you're not sure
+  if you need a lazy sequence or not, use parsed-vec instead."
   [^Reader rdr]
   (parsed-lnpr-seq (PushbackReader. rdr 2)))
 
