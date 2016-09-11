@@ -1,6 +1,5 @@
 (ns com.hypirion.template-unquote
-  (:refer-clojure :exclude [peek])
-  (:require [clojail.core :as jail])
+  (:require [clojure.core.match :refer [match]])
   (:import (java.io Reader StringReader PushbackReader
                     Writer StringWriter
                     EOFException)))
@@ -135,18 +134,24 @@
 
 (defn evaluate-form
   "Lazily transforms an element into values by sequentially evaluating
-  forms with eval-fn. Nested forms are evaluated innermost first,
-  left-to-right."
+  forms with eval-fn. Nested forms are evaluated left-to-right."
   [form eval-fn]
-  ;; TODO: Here's where I put the logic
-  []
-  )
+  (match [form]
+         [[:string s]] [s]
+         [[:form f]] [(eval-fn f)]
+         [[:splice-form f]] (eval-fn f)
+         [[:inline-form f]] (let [[fst args] f
+                                  eval-args (->> (mapcat #(evaluate-form % eval-fn) args)
+                                               (apply str))]
+                              (if (vector? f)
+                                [fst eval-args]
+                                (eval-fn (list fst eval-args))))))
 
 (defn evaluated-seq
   "Lazily transforms every element of coll into values by sequentially
-  evaluating forms with eval-fn. Nested forms are evaluated innermost
-  first, left-to-right. If you're not sure if you need a lazy sequence
-  or not, use evaluated-vec instead."
+  evaluating forms with eval-fn. Nested forms are evaluated
+  left-to-right. If you're not sure if you need a lazy sequence or
+  not, use evaluated-vec instead."
   [coll eval-fn]
   (mapcat #(evaluate-form % eval-fn) coll))
 
@@ -169,14 +174,13 @@
     (render (StringReader. s) wrt eval-fn)
     (str wrt)))
 
-;; TODO: Into its own namespace
-(defmacro with-sandbox
-  "Creates a temorary sandbox and cleans up as much of it as it can."
-  [[sandbox-name tester & sandbox-args]
-   & body]
-  `(let [sandbox-ns# (gensym "sandbox")
-         ~sandbox-name (jail/sandbox ~tester ~@sandbox-args :namespace sandbox-ns#)]
-     (try
-       ~@body
-       (finally
-         (remove-ns sandbox-ns#)))))
+(defmacro with-tmp-ns
+  "Creates a temporary namespace with the symbol name s which will be
+  removed after execution"
+  [[s] & body]
+  `(try
+     (let [~s (gensym "tmp_ns")]
+       (create-ns ~s)
+       ~@body)
+     (finally
+       (remove-ns ~s))))
