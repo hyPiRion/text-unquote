@@ -6,7 +6,7 @@
 
 (def ^:dynamic *unquote-char* \~)
 (def ^:dynamic *splice-char* \@)
-(def ^:dynamic *inline-char* \#)
+(def ^:dynamic *recur-char* \#)
 
 (defn ^:private string-buffer
   "Returns a StringBuffer which contains the single character c."
@@ -38,25 +38,25 @@
           :otherwise (do (.append sb (char c))
                          (recur rdr stop-val sb)))))
 
-(def ^:private matching-inline-delimiter
+(def ^:private matching-recur-delimiter
   {(int \() (int \))
    (int \[) (int \])})
 
-(def ^:private inline-delimiter-type
+(def ^:private recur-delimiter-type
   {(int \() list
    (int \[) vector})
 
 (declare parse-forms-until)
 
-(defn ^:private parse-inline-form
-  "Parses an inline form."
+(defn ^:private parse-recur-form
+  "Parses an recur form."
   [^PushbackReader rdr]
   (let [delimiter (.read rdr)
-        end-delimiter (matching-inline-delimiter delimiter)]
+        end-delimiter (matching-recur-delimiter delimiter)]
     (when (== delimiter (int -1))
-      (throw (EOFException. (str "Stream ends with " *unquote-char* *inline-char*))))
+      (throw (EOFException. (str "Stream ends with " *unquote-char* *recur-char*))))
     (when-not end-delimiter
-      (throw (RuntimeException. (str *unquote-char* *inline-char*
+      (throw (RuntimeException. (str *unquote-char* *recur-char*
                                      " only supports [ and ( as delimiters, not "
                                      (char delimiter)))))
     (let [first-value (read rdr)
@@ -64,8 +64,8 @@
           _ (let [c (.read rdr)]
               (if-not (= (char c) \space)
                 (.unread rdr c)))
-          inline-data (parse-forms-until rdr end-delimiter)]
-      [:inline-form ((inline-delimiter-type delimiter) first-value inline-data)])))
+          recur-data (parse-forms-until rdr end-delimiter)]
+      [:recur-form ((recur-delimiter-type delimiter) first-value recur-data)])))
 
 (defn parse-form-until
   "Parses a single unevaluated form or string from the given reader and returns
@@ -86,8 +86,8 @@
                   ,,(parse-string-until rdr stop-val (string-buffer (char c*)))
                   (== c* (int *splice-char*))
                   ,,[:splice-form (read rdr)]
-                  (== c* (int *inline-char*))
-                  ,,(parse-inline-form rdr)
+                  (== c* (int *recur-char*))
+                  ,,(parse-recur-form rdr)
                   :otherwise
                   ,,(do (when-not (== c* (int -1))
                           (.unread rdr c*))
@@ -105,8 +105,8 @@
       (do
         (when (identical? form ::eof)
           ;; TODO: Well eh, this is a complect error message: Should change this
-          ;; if this is used by other forms than inline-form.
-          (throw (RuntimeException. (str "Inside " *unquote-char* *inline-char*
+          ;; if this is used by other forms than recur-form.
+          (throw (RuntimeException. (str "Inside " *unquote-char* *recur-char*
                                          " form: Expected " (char stop-val) " at some point,"
                                          " but EOF was found before that"))))
         (recur (conj forms form)))
@@ -147,12 +147,13 @@
          [[:string s]] [s]
          [[:form f]] [(eval-fn f)]
          [[:splice-form f]] (eval-fn f)
-         [[:inline-form f]] (let [[fst args] f
-                                  eval-args (->> (mapcat #(evaluate-form % eval-fn) args)
-                                               (apply str))]
+         [[:recur-form f]] (let [[fst args] f
+                                 eval-args (->> (mapcat #(evaluate-form % eval-fn) args)
+                                              (map #(if (string? %) % (pr-str %)))
+                                              (apply str))]
                               (if (vector? f)
-                                [fst eval-args]
-                                (eval-fn (list fst eval-args))))))
+                                [[fst eval-args]]
+                                [(eval-fn (list fst eval-args))]))))
 
 (defn evaluated-seq
   "Lazily transforms every element of coll into values by sequentially
@@ -172,7 +173,9 @@
   evaluator."
   [^Reader rdr ^Writer wrt eval-fn]
   (doseq [data (-> rdr (parsed-seq) (evaluated-seq eval-fn))]
-    (.write wrt (str data))))
+    (if (string? data)
+      (.write wrt data)
+      (.write wrt (pr-str data)))))
 
 (defn render-string
   "Renders the input string with eval-fn and returns the result as a string."

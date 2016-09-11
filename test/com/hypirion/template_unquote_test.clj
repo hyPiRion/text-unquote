@@ -16,29 +16,29 @@
       "~@(foo bar)" ([:splice-form (foo bar)])
       "~(baz)zap" ([:form (baz)] [:string "zap"])
       "foo ~(bar) baz" ([:string "foo "] [:form (bar)] [:string " baz"])
-      "~#(foo /[v.v]/) quux" ([:inline-form (foo [[:string "/[v.v]/"]])]
+      "~#(foo /[v.v]/) quux" ([:recur-form (foo [[:string "/[v.v]/"]])]
                              [:string " quux"])
-      "~#(foo~))" ([:inline-form (foo [[:string ")"]])])
-      ;; nesting in inline forms
-      "~#(foo bar~(baz)zap)" ([:inline-form (foo [[:string "bar"]
+      "~#(foo~))" ([:recur-form (foo [[:string ")"]])])
+      ;; nesting in recur forms
+      "~#(foo bar~(baz)zap)" ([:recur-form (foo [[:string "bar"]
                                                  [:form (baz)]
                                                  [:string "zap"]])])
-      "~#(foo~#[bar~#(baz)])" ([:inline-form (foo [[:inline-form
-                                                 [bar [[:inline-form
+      "~#(foo~#[bar~#(baz)])" ([:recur-form (foo [[:recur-form
+                                                 [bar [[:recur-form
                                                         (baz [])]]]]])])
       ;; Uh, it's legal because we do clojure.core/read so yeah
       "~ #=(clojure.lang.PersistentArrayMap/create {})" ([:form {}])))
   (testing "other symbols for evaluating"
     (binding [*unquote-char* \$
               *splice-char* \^
-              *inline-char* \>]
+              *recur-char* \>]
       (are [s forms] (= (parse-string s) (quote forms))
         "foo bar" ([:string "foo bar"])
         "tilde: ~" ([:string "tilde: ~"])
         "$(foo bar)" ([:form (foo bar)])
         "$^(foo bar)" ([:splice-form (foo bar)])
-        "$>(foo~bar~)" ([:inline-form (foo [[:string "~bar~"]])])
-        "$>(a $>[:b $(c)])" ([:inline-form (a [[:inline-form [:b [[:form (c)]]]]])]))))
+        "$>(foo~bar~)" ([:recur-form (foo [[:string "~bar~"]])])
+        "$>(a $>[:b $(c)])" ([:recur-form (a [[:recur-form [:b [[:form (c)]]]]])]))))
   (testing "errors"
     (is (thrown-with-msg? java.io.EOFException #"Stream ends with ~#"
                           (dorun (parse-string "~#"))))
@@ -63,4 +63,4 @@
       "1 + 2 = ~(+ 1 2)" "1 + 2 = 3"
       "~(do (defonce counter (atom 0)) @counter) ~(swap! counter inc)" "0 1"
       "~(do (defonce counter (atom 0)) @counter) ~(swap! counter inc)" "0 1"
-      "~(do (def counter (atom 0)) nil)~#(str ~(swap! counter inc))" "1")))
+      "~@(do (def counter (atom 0)) nil)~#(str ~(swap! counter inc))" "1")))
