@@ -53,3 +53,14 @@
     (is (thrown-with-msg? RuntimeException #"EOF while reading"
                           (dorun (parse-string "~"))))))
 
+(deftest eval-test
+  (testing "basic evaluation order and the like"
+    (are [input output] (with-tmp-ns [s]
+                          (eval-in-ns s '(clojure.core/refer-clojure))
+                          (= (render-string input #(eval-in-ns s %))
+                             output))
+      "1 + 2 = 3" "1 + 2 = 3"
+      "1 + 2 = ~(+ 1 2)" "1 + 2 = 3"
+      "~(do (defonce counter (atom 0)) @counter) ~(swap! counter inc)" "0 1"
+      "~(do (defonce counter (atom 0)) @counter) ~(swap! counter inc)" "0 1"
+      "~(do (def counter (atom 0)) nil)~#(str ~(swap! counter inc))" "1")))

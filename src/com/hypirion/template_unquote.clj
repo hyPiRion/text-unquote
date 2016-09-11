@@ -181,13 +181,19 @@
     (render (StringReader. s) wrt eval-fn)
     (str wrt)))
 
+(defn eval-in-ns
+  "Like eval, but performs the evaluation inside the given ns."
+  [ns form]
+  (binding [*ns* (the-ns ns)]
+    (eval form)))
+
 (defmacro with-tmp-ns
   "Creates a temporary namespace with the symbol name s which will be
   removed after execution"
   [[s] & body]
-  `(try
-     (let [~s (gensym "tmp_ns")]
+  `(let [~s (gensym "tmp_ns")]
+     (try
        (create-ns ~s)
-       ~@body)
-     (finally
-       (remove-ns ~s))))
+       ~@body
+       (finally
+         (remove-ns ~s)))))
