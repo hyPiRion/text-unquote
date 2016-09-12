@@ -4,7 +4,7 @@ A small Clojure library which can be used for inline evaluation or as a basis
 for a templating library/other tool.
 
 **The examples provided are _not_ secure for general purpose input. Please read**
-**the section about security before exposing this to "unsafe" inputs.**
+**the section about security before exposing this to potentially unsafe input.**
 
 ## Quickstart
 
@@ -53,7 +53,7 @@ then (in this context) that can be considered like performing
 ```
 
 This may look weird at first, but can be useful for libraries that build upon
-text-unquote. For example, if you have an HTML-rendering library, you could
+text-unquote. For example, if you have a document rendering library, you could
 do
 
 ```
@@ -86,8 +86,8 @@ user=> (tu/render-string "~) works fine outside recursive forms,
 ```
 
 Since both `~@` and `~#` start with symbols that are legal in the beginning of
-Clojure forms, you should put whitespace between the tilde and the symbol to get
-the desired results:
+Clojure forms, you can put whitespace between the tilde and the symbol to get
+derefs and tagged literals inside your expression:
 
 ```clj
 user=> (def counter (atom 2))
@@ -125,7 +125,7 @@ that: `with-tmp-ns` and `eval-in-ns`. They can be used as follows:
 ```clj
 (tu/with-tmp-ns [s]
   (tu/eval-in-ns s '(clojure.core/refer-clojure))
-  ;; ^ To let clojure.core definitions be accessible
+  ;; ^ To let clojure.core definitions be easily accessible
   (tu/render-string "
 ~@(do (defonce counter (atom 0))
       (defn inc-ref! [] (swap! counter inc))
@@ -141,8 +141,9 @@ text to define temporary values via def/defn and use them.
 
 ## Security
 
-If you need to handle unknown input from potentially malicious users, please use
-[clojail](https://github.com/Raynes/clojail). Here's a minimal working snippet:
+If you need to handle unknown input from potentially malicious users, use
+[clojail](https://github.com/Raynes/clojail). Here's a minimal working snippet
+on how you can use text-unquote with a sandbox:
 
 ```clj
 (require '[clojail.core :as jail]
@@ -150,12 +151,12 @@ If you need to handle unknown input from potentially malicious users, please use
 
 (defn evaluate-markup [the-string]
   (tu/with-tmp-ns [s]
-    (let [sb (sandbox secure-tester :namespace s)]
+    (let [sb (jail/sandbox testers/secure-tester :namespace s)]
       (tu/render-string the-string sb))))
 ```
 
-But please read through the documentation of Clojail and set these things up
-properly.
+Please read through the Clojail documentation and set it up properly if you need
+to expose text-unquote to unknown input.
 
 ## Using text-unquote as a markup basis
 
