@@ -1,4 +1,4 @@
-(defproject com.hypirion/text-unquote "0.1.0"
+(defproject com.hypirion/text-unquote "0.2.0-SNAPSHOT"
   :description "Library to unquote Clojure forms in text"
   :url "https://github.com/hyPiRion/text-unquote"
   :license {:name "Eclipse Public License"
