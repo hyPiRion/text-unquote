@@ -1,5 +1,7 @@
 # text-unquote
 
+[![Clojars Project](https://img.shields.io/clojars/v/com.hypirion/text-unquote.svg)](https://clojars.org/com.hypirion/text-unquote)
+
 A small Clojure library which can be used for inline evaluation or as a basis
 for a templating library/other tool.
 

@@ -1,5 +1,5 @@
 # Changelog for text-unquote
 
-## 0.1.0 / 2016-09-10
+## 0.1.0 / 2017-06-19
 
 * First version!
