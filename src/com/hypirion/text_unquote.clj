@@ -49,7 +49,7 @@
 (declare parse-forms-until)
 
 (defn ^:private parse-recur-form
-  "Parses an recur form."
+  "Parses a recur form."
   [^PushbackReader rdr]
   (let [delimiter (.read rdr)
         end-delimiter (matching-recur-delimiter delimiter)]
@@ -114,7 +114,7 @@
 
 (defn parse-form
   "Parses a single unevaluated form or string from the given reader and returns
-  it. Will parse until a new token or eof is found."  
+  it. Will parse until a new token or eof is found."
   [^PushbackReader rdr]
   (parse-form-until rdr (int -2)))
 

@@ -100,6 +100,13 @@ user=> (tu/render-string "The time is ~ #inst \"1985-04-12T23:20:50.52Z\"" eval)
 ;; libraries. Read the section "Using text-unquote as a markup basis"
 ```
 
+You can also use `deref` by just calling `deref` directly:
+
+```clj
+user=> (tu/render-string "There are ~(deref counter) remaining task(s)" eval)
+"There are 2 remaining task(s)"
+```
+
 ## Changing Special Symbols
 
 The special symbols can be changed by binding the dynamic variables
@@ -162,10 +169,9 @@ to expose text-unquote to unknown input.
 
 TODO
 
-
 ## License
 
-Copyright © 2016 Jean Niklas L'orange
+Copyright © 2016-2017 Jean Niklas L'orange
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
